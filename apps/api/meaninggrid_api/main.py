@@ -39,6 +39,7 @@ from meaninggrid_api.schemas import (
     ModuleInstallationSummary,
     ModuleSummary,
     SiteAuditClusters,
+    SiteAuditDuplicates,
     SiteAuditOverview,
     SiteAuditPageRow,
     SiteAuditRunCreate,
@@ -254,6 +255,11 @@ def get_site_audit_semantic_map(dataset_id: UUID, db: DbSession) -> SiteAuditSem
 @app.get("/datasets/{dataset_id}/site-audit/clusters", tags=["site-audit"])
 def get_site_audit_clusters(dataset_id: UUID, db: DbSession) -> SiteAuditClusters:
     return SiteAuditClusters(**SiteAuditApplicationService(db).clusters(dataset_id))
+
+
+@app.get("/datasets/{dataset_id}/site-audit/duplicates", tags=["site-audit"])
+def get_site_audit_duplicates(dataset_id: UUID, db: DbSession) -> SiteAuditDuplicates:
+    return SiteAuditDuplicates(**SiteAuditApplicationService(db).duplicates(dataset_id))
 
 
 @app.post("/datasets/{dataset_id}/site-audit/crawls", tags=["site-audit"], status_code=202)

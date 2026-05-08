@@ -48,6 +48,9 @@ def test_mcp_site_audit_semantic_search_returns_evidence() -> None:
             },
         )
         clusters = mcp_client.get(f"/mcp/resource/dataset/{dataset['id']}/site-audit/clusters")
+        duplicates = mcp_client.get(
+            f"/mcp/resource/dataset/{dataset['id']}/site-audit/duplicates"
+        )
 
     assert response.status_code == 200
     results = response.json()["results"]
@@ -58,3 +61,7 @@ def test_mcp_site_audit_semantic_search_returns_evidence() -> None:
     cluster_body = clusters.json()
     assert cluster_body["cluster_count"] >= 1
     assert cluster_body["clusters"][0]["members"]
+    assert duplicates.status_code == 200
+    duplicate_body = duplicates.json()
+    assert duplicate_body["duplicate_count"] >= 1
+    assert duplicate_body["duplicates"][0]["source_entity_id"]

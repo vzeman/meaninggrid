@@ -86,6 +86,11 @@ def list_resources() -> dict[str, list[dict[str, Any]]]:
                                 "name": f"{dataset.name} clusters",
                                 "description": "Semantic page clusters and members.",
                             },
+                            {
+                                "uri": f"meaninggrid://dataset/{dataset.id}/site-audit/duplicates",
+                                "name": f"{dataset.name} duplicates",
+                                "description": "Duplicate and near-duplicate page pairs.",
+                            },
                         ]
                     )
     return {"resources": resources}
@@ -132,6 +137,23 @@ def get_site_audit_clusters(dataset_id: UUID) -> dict[str, Any]:
                     ],
                 }
                 for cluster in clusters["clusters"]
+            ],
+        }
+
+
+@app.get("/mcp/resource/dataset/{dataset_id}/site-audit/duplicates", tags=["mcp"])
+def get_site_audit_duplicates(dataset_id: UUID) -> dict[str, Any]:
+    with session_scope() as session:
+        duplicates = SiteAuditApplicationService(session).duplicates(dataset_id)
+        return {
+            **duplicates,
+            "duplicates": [
+                {
+                    **duplicate,
+                    "source_entity_id": str(duplicate["source_entity_id"]),
+                    "target_entity_id": str(duplicate["target_entity_id"]),
+                }
+                for duplicate in duplicates["duplicates"]
             ],
         }
 

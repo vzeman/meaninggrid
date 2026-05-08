@@ -334,6 +334,25 @@ class SiteAuditApplicationService:
             ],
         }
 
+    def duplicates(self, dataset_id: UUID) -> dict[str, Any]:
+        dataset = self.datasets.get_dataset(dataset_id)
+        page_vectors = self._page_vectors(dataset.id)
+        pairs = _page_similarity_pairs(page_vectors)
+        duplicate_pairs = [
+            _duplicate_pair(source, target, similarity)
+            for source, target, similarity in pairs
+            if similarity >= 0.92
+        ]
+        if not duplicate_pairs and pairs:
+            source, target, similarity = pairs[0]
+            if similarity >= 0.82:
+                duplicate_pairs.append(_duplicate_pair(source, target, similarity))
+        return {
+            "page_count": len(page_vectors),
+            "duplicate_count": len(duplicate_pairs),
+            "duplicates": duplicate_pairs[:10],
+        }
+
     def start_crawl(self, command: StartSiteAuditCrawlCommand) -> Job:
         dataset = self.datasets.get_dataset(command.dataset_id)
         source, stream = self._ensure_website_source(dataset, command)
@@ -653,6 +672,31 @@ def _semantic_cluster(
     }
 
 
+def _duplicate_pair(source: Entity, target: Entity, similarity: float) -> dict[str, Any]:
+    return {
+        "source_entity_id": source.id,
+        "target_entity_id": target.id,
+        "source_label": source.label,
+        "target_label": target.label,
+        "source_uri": source.canonical_uri,
+        "target_uri": target.canonical_uri,
+        "similarity": similarity,
+        "duplicate_type": "exact_duplicate" if similarity >= 0.985 else "near_duplicate",
+    }
+
+
+def _page_similarity_pairs(
+    page_vectors: dict[Entity, list[float]],
+) -> list[tuple[Entity, Entity, float]]:
+    pages = list(page_vectors.keys())
+    pairs = [
+        (source, target, _cosine(page_vectors[source], page_vectors[target]))
+        for index, source in enumerate(pages)
+        for target in pages[index + 1 :]
+    ]
+    return sorted(pairs, key=lambda pair: pair[2], reverse=True)
+
+
 def _cluster_pages(page_vectors: dict[Entity, list[float]]) -> list[list[Entity]]:
     pages = list(page_vectors.keys())
     parent = {page: page for page in pages}
@@ -673,11 +717,7 @@ def _cluster_pages(page_vectors: dict[Entity, list[float]]) -> list[list[Entity]
         if first_root is not second_root:
             parent[second_root] = first_root
 
-    pairs = [
-        (source, target, _cosine(page_vectors[source], page_vectors[target]))
-        for index, source in enumerate(pages)
-        for target in pages[index + 1 :]
-    ]
+    pairs = _page_similarity_pairs(page_vectors)
     for source, target, similarity in pairs:
         if similarity >= 0.72:
             union(source, target)

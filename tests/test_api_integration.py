@@ -199,6 +199,16 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
             for member in cluster["members"]
         )
 
+        duplicates = client.get(f"/datasets/{dataset['id']}/site-audit/duplicates")
+        assert duplicates.status_code == 200
+        duplicate_body = duplicates.json()
+        assert duplicate_body["page_count"] == 5
+        assert duplicate_body["duplicate_count"] >= 1
+        assert any(
+            "Pricing" in duplicate["source_label"] and "Pricing" in duplicate["target_label"]
+            for duplicate in duplicate_body["duplicates"]
+        )
+
     with session_scope() as session:
         stored_dataset = session.get(Dataset, dataset["id"])
         assert stored_dataset is not None

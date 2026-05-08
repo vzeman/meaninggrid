@@ -84,6 +84,19 @@ type ClusterMap = {
   }>;
 };
 
+type DuplicateMap = {
+  page_count: number;
+  duplicate_count: number;
+  duplicates: Array<{
+    source_label: string;
+    target_label: string;
+    source_uri: string | null;
+    target_uri: string | null;
+    similarity: number;
+    duplicate_type: string;
+  }>;
+};
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const mcpUrl = process.env.NEXT_PUBLIC_MCP_URL ?? "http://localhost:8010";
 
@@ -99,6 +112,7 @@ export function Dashboard() {
   const [pages, setPages] = useState<PageRow[]>([]);
   const [semanticMap, setSemanticMap] = useState<SemanticMap | null>(null);
   const [clusterMap, setClusterMap] = useState<ClusterMap | null>(null);
+  const [duplicateMap, setDuplicateMap] = useState<DuplicateMap | null>(null);
   const [query, setQuery] = useState("pricing plans checkout automation");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -167,18 +181,21 @@ export function Dashboard() {
       setSearchResults([]);
       setSemanticMap(null);
       setClusterMap(null);
+      setDuplicateMap(null);
       return;
     }
-    const [overviewData, pageData, semanticData, clusterData] = await Promise.all([
+    const [overviewData, pageData, semanticData, clusterData, duplicateData] = await Promise.all([
       request<Overview>(`/datasets/${datasetId}/site-audit/overview`),
       request<{ pages: PageRow[] }>(`/datasets/${datasetId}/site-audit/pages`),
       request<SemanticMap>(`/datasets/${datasetId}/site-audit/semantic-map`),
-      request<ClusterMap>(`/datasets/${datasetId}/site-audit/clusters`)
+      request<ClusterMap>(`/datasets/${datasetId}/site-audit/clusters`),
+      request<DuplicateMap>(`/datasets/${datasetId}/site-audit/duplicates`)
     ]);
     setOverview(overviewData);
     setPages(pageData.pages ?? []);
     setSemanticMap(semanticData);
     setClusterMap(clusterData);
+    setDuplicateMap(duplicateData);
   }
 
   useEffect(() => {
@@ -368,6 +385,7 @@ export function Dashboard() {
         <Metric label="Entities" value={selectedDataset?.entity_count ?? 0} />
         <Metric label="Content units" value={selectedDataset?.content_unit_count ?? 0} />
         <Metric label="Clusters" value={clusterMap?.cluster_count ?? 0} />
+        <Metric label="Duplicates" value={duplicateMap?.duplicate_count ?? 0} />
       </section>
 
       <section className="grid">
@@ -472,6 +490,23 @@ export function Dashboard() {
                   <span>{cluster.page_count === 1 ? "1 page" : `${cluster.page_count} pages`}</span>
                 </div>
                 <p>{cluster.members.map((member) => member.label).join(" / ")}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <h2>Duplicates</h2>
+          <div className="analysisList">
+            {(duplicateMap?.duplicates ?? []).slice(0, 4).map((duplicate) => (
+              <div
+                key={`${duplicate.source_label}-${duplicate.target_label}-${duplicate.similarity}`}
+                className="analysisRow"
+              >
+                <span>{formatScore(duplicate.similarity)}</span>
+                <p>
+                  {duplicate.source_label} / {duplicate.target_label}
+                </p>
               </div>
             ))}
           </div>

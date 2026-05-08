@@ -199,3 +199,20 @@ class SiteAuditClusters(BaseModel):
     page_count: int
     cluster_count: int
     clusters: list[SiteAuditCluster]
+
+
+class SiteAuditDuplicatePair(BaseModel):
+    source_entity_id: UUID
+    target_entity_id: UUID
+    source_label: str
+    target_label: str
+    source_uri: str | None
+    target_uri: str | None
+    similarity: float
+    duplicate_type: str
+
+
+class SiteAuditDuplicates(BaseModel):
+    page_count: int
+    duplicate_count: int
+    duplicates: list[SiteAuditDuplicatePair]

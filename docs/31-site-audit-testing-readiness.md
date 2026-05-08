@@ -13,6 +13,7 @@ The Site Audit module is ready for tester feedback when a fresh checkout can:
 - embed content chunks into Qdrant
 - search crawled content semantically
 - compute semantic page clusters
+- detect duplicate and near-duplicate page pairs
 - compute similar page pairs and outliers
 - expose dataset context through MCP
 - render the dashboard workflow
@@ -36,7 +37,7 @@ make ready
 The smoke test creates a fresh fixture dataset and verifies the full module path:
 
 ```text
-dataset -> crawl -> extract -> embed -> Qdrant search -> clusters -> semantic map -> MCP search
+dataset -> crawl -> extract -> embed -> Qdrant search -> clusters -> duplicates -> semantic map -> MCP search
 ```
 
 Expected final line:
@@ -96,6 +97,7 @@ GET  /datasets/{dataset_id}/site-audit/overview
 GET  /datasets/{dataset_id}/site-audit/pages
 POST /datasets/{dataset_id}/site-audit/search
 GET  /datasets/{dataset_id}/site-audit/clusters
+GET  /datasets/{dataset_id}/site-audit/duplicates
 GET  /datasets/{dataset_id}/site-audit/semantic-map
 ```
 
@@ -108,6 +110,7 @@ GET  /mcp/resources
 GET  /mcp/resource/dataset/{dataset_id}/card
 GET  /mcp/resource/dataset/{dataset_id}/site-audit/overview
 GET  /mcp/resource/dataset/{dataset_id}/site-audit/clusters
+GET  /mcp/resource/dataset/{dataset_id}/site-audit/duplicates
 POST /mcp/tools/site-audit/semantic-search
 ```
 
