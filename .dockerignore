@@ -1,0 +1,9 @@
+.git
+.venv
+node_modules
+.next
+.pytest_cache
+.ruff_cache
+.DS_Store
+.env
+*.log

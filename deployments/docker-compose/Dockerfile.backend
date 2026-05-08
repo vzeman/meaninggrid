@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/packages/core:/app/apps/api:/app/apps/worker:/app/apps/scheduler:/app/apps/mcp-server:/app/apps/cli
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential curl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt pyproject.toml README.md ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY apps ./apps
+COPY packages ./packages
+COPY modules ./modules
+COPY migrations ./migrations
+
+EXPOSE 8000
+EXPOSE 8010

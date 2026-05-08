@@ -1,0 +1,1 @@
+"""MeaningGrid MCP server placeholder."""

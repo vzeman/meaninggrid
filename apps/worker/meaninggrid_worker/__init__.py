@@ -1,0 +1,1 @@
+"""MeaningGrid worker application."""

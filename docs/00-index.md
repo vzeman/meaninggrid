@@ -126,6 +126,10 @@ intelligence platform and context layer for AI agents.
     - Monorepo skeleton, tooling, Docker Compose, sprint sequence, demos, CI,
       and implementation risks.
 
+31. [Engineering Decisions V0](29-engineering-decisions-v0.md)
+    - Locked v0 choices for package tools, backend, workers, frontend,
+      embeddings, crawler libraries, IDs, auth, storage, MCP, and fixture site.
+
 ## First Implementation Target
 
 The first useful release should allow a developer to run this locally:
@@ -140,7 +144,7 @@ meaninggrid mcp start
 For implementation, start with:
 
 ```text
-22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints
+22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints -> 29 Decisions
 ```
 
 Then an AI agent can ask through MCP:

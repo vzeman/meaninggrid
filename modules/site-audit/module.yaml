@@ -1,0 +1,59 @@
+id: site_audit
+name: Site Audit And GEO Intelligence
+version: 0.1.0
+bundled: true
+default_enabled: true
+license: AGPL-3.0
+description: Crawl websites and analyze technical SEO, semantic quality, and GEO readiness.
+capabilities:
+  - website_crawler
+  - entity_schema
+  - metric_definitions
+  - relation_definitions
+  - analysis_presets
+  - dashboards
+  - reports
+  - mcp_prompts
+entity_types:
+  - domain
+  - crawl_run
+  - page
+  - paragraph
+  - heading
+  - link
+  - topic_cluster
+relations:
+  - owns
+  - discovered
+  - contains
+  - links_to
+  - canonical_of
+  - redirects_to
+  - similar_to
+  - duplicates
+  - belongs_to
+metrics:
+  - http_status_code
+  - is_indexable
+  - title_length
+  - meta_description_length
+  - h1_count
+  - word_count
+  - internal_inlinks
+  - internal_outlinks
+  - duplicate_similarity_score
+  - centroid_distance
+  - topical_focus_score
+  - technical_score
+  - geo_readiness_score
+analysis_presets:
+  - site_audit_v0
+  - site_audit_technical
+  - site_audit_semantic
+  - site_audit_geo
+mcp_prompts:
+  - audit_site_geo
+  - explain_page_outlier
+  - find_content_gaps
+  - find_internal_link_opportunities
+  - prepare_content_brief

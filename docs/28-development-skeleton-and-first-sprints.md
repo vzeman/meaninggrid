@@ -7,6 +7,9 @@ This document turns the v0 specs into an implementation sequence.
 The first engineering goal is a working local skeleton, then a thin vertical
 slice of Site Audit.
 
+Concrete choices are locked in:
+[Engineering Decisions V0](29-engineering-decisions-v0.md).
+
 ## Repository Skeleton
 
 ```text

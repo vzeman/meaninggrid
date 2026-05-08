@@ -1,0 +1,3 @@
+# Optional local embedding dependencies.
+# Install in the local-ai profile or embedding worker image once embeddings are implemented.
+sentence-transformers>=3,<4

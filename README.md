@@ -99,5 +99,30 @@ Start here:
 - [docs/26-worker-jobs-and-state-machines.md](docs/26-worker-jobs-and-state-machines.md)
 - [docs/27-ui-information-architecture-v0.md](docs/27-ui-information-architecture-v0.md)
 - [docs/28-development-skeleton-and-first-sprints.md](docs/28-development-skeleton-and-first-sprints.md)
+- [docs/29-engineering-decisions-v0.md](docs/29-engineering-decisions-v0.md)
 - [docs/modules/README.md](docs/modules/README.md)
 - [docs/modules/module-feature-mapping.md](docs/modules/module-feature-mapping.md)
+
+## Development
+
+First local target:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Expected local URLs:
+
+- Web UI: http://localhost:3000
+- API: http://localhost:8000
+- API health: http://localhost:8000/health
+- MCP placeholder: http://localhost:8010/health
+- MinIO console: http://localhost:9001
+- Qdrant: http://localhost:6333
+
+The first implementation slice is documented in:
+
+- [docs/22-mvp-scope-and-acceptance.md](docs/22-mvp-scope-and-acceptance.md)
+- [docs/28-development-skeleton-and-first-sprints.md](docs/28-development-skeleton-and-first-sprints.md)
+- [docs/29-engineering-decisions-v0.md](docs/29-engineering-decisions-v0.md)
