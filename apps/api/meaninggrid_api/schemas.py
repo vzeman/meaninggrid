@@ -120,3 +120,21 @@ class JobEventSummary(BaseModel):
     progress_total: int | None
     payload: JsonObject
     created_at: datetime
+
+
+class SiteAuditOverview(BaseModel):
+    pages_crawled: int
+    technical_score_avg: float | None
+    geo_readiness_avg: float | None
+    open_insights: int
+    top_issue_types: list[JsonObject]
+
+
+class SiteAuditPageRow(BaseModel):
+    entity_id: UUID
+    label: str
+    canonical_uri: str | None
+    title: str | None
+    status_code: int | None
+    word_count: int | None
+    technical_score: float | None

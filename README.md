@@ -126,6 +126,13 @@ Run the current backend integration tests and web typecheck with:
 make test
 ```
 
+For local development, crawl jobs can be queued through the API and executed
+immediately with:
+
+```bash
+POST /jobs/{job_id}/run-now
+```
+
 Expected local URLs:
 
 - Web UI: http://localhost:3000

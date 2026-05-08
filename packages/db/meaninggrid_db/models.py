@@ -1,7 +1,9 @@
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     Text,
@@ -217,6 +219,65 @@ class DataStream(TimestampMixin, Base):
     schedule_cron = Column(Text)
 
 
+class RawObject(Base):
+    __tablename__ = "raw_objects"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_id",
+            "external_id",
+            "content_hash",
+            name="uq_raw_objects_source_external_hash",
+        ),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    source_id = uuid_fk("sources")
+    external_id = Column(Text)
+    object_kind = Column(Text, nullable=False)
+    object_uri = Column(Text, nullable=False)
+    content_hash = Column(Text, nullable=False)
+    mime_type = Column(Text)
+    size_bytes = Column(BigInteger)
+    captured_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    source_updated_at = Column(DateTime(timezone=True))
+    metadata_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class SourceEvent(Base):
+    __tablename__ = "source_events"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "idempotency_key", name="uq_source_events_idempotency"),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    source_id = uuid_fk("sources")
+    data_stream_id = Column(UUID(as_uuid=True), ForeignKey("data_streams.id", ondelete="SET NULL"))
+    external_event_id = Column(Text)
+    event_type = Column(Text, nullable=False)
+    occurred_at = Column(DateTime(timezone=True))
+    received_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    source_updated_at = Column(DateTime(timezone=True))
+    raw_object_id = Column(UUID(as_uuid=True), ForeignKey("raw_objects.id", ondelete="SET NULL"))
+    idempotency_key = Column(Text, nullable=False)
+    payload_hash = Column(Text)
+    processing_status = Column(Text, nullable=False, server_default="pending")
+    partition_key = Column(Text)
+    sequence = Column(Text)
+    priority_hint = Column(Text)
+    route_hint = Column(Text)
+    metadata_json = json_object()
+    labels_json = json_object()
+    classification_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class EntityType(TimestampMixin, Base):
     __tablename__ = "entity_types"
     __table_args__ = (
@@ -294,6 +355,147 @@ class MetricDefinition(TimestampMixin, Base):
     aggregation = Column(Text)
     properties_json = json_object()
     labels_json = json_object()
+
+
+class Entity(TimestampMixin, Base):
+    __tablename__ = "entities"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "entity_type_id",
+            "external_id",
+            name="uq_entities_dataset_type_external",
+        ),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    entity_type_id = uuid_fk("entity_types")
+    external_id = Column(Text)
+    label = Column(Text, nullable=False)
+    description = Column(Text)
+    canonical_uri = Column(Text)
+    raw_object_id = Column(UUID(as_uuid=True), ForeignKey("raw_objects.id", ondelete="SET NULL"))
+    properties_json = json_object()
+    labels_json = json_object()
+    classification_json = json_object()
+    source_created_at = Column(DateTime(timezone=True))
+    source_updated_at = Column(DateTime(timezone=True))
+
+
+class EntityRelation(Base):
+    __tablename__ = "entity_relations"
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    from_entity_id = uuid_fk("entities")
+    to_entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="SET NULL"))
+    to_external_ref = Column(Text)
+    relation_type = Column(Text, nullable=False)
+    weight = Column(Float)
+    confidence = Column(Float)
+    evidence_content_unit_id = Column(UUID(as_uuid=True), ForeignKey("content_units.id"))
+    properties_json = json_object()
+    labels_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class ContentUnit(Base):
+    __tablename__ = "content_units"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "entity_id",
+            "unit_kind",
+            "order_index",
+            "content_hash",
+            name="uq_content_units_identity",
+        ),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="CASCADE"))
+    raw_object_id = Column(UUID(as_uuid=True), ForeignKey("raw_objects.id", ondelete="SET NULL"))
+    unit_kind = Column(Text, nullable=False)
+    title = Column(Text)
+    text = Column(Text)
+    language = Column(Text)
+    order_index = Column(Integer)
+    token_count = Column(Integer)
+    word_count = Column(Integer)
+    content_hash = Column(Text, nullable=False)
+    metadata_json = json_object()
+    labels_json = json_object()
+    classification_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class ContentChunk(Base):
+    __tablename__ = "content_chunks"
+    __table_args__ = (
+        UniqueConstraint(
+            "content_unit_id",
+            "chunk_index",
+            "chunking_strategy",
+            "chunking_version",
+            name="uq_content_chunks_identity",
+        ),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    content_unit_id = uuid_fk("content_units")
+    entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="CASCADE"))
+    chunk_index = Column(Integer, nullable=False)
+    text = Column(Text, nullable=False)
+    token_count = Column(Integer)
+    content_hash = Column(Text, nullable=False)
+    chunking_strategy = Column(Text, nullable=False)
+    chunking_version = Column(Text, nullable=False)
+    start_offset = Column(Integer)
+    end_offset = Column(Integer)
+    metadata_json = json_object()
+    labels_json = json_object()
+    classification_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class MetricValue(Base):
+    __tablename__ = "metric_values"
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    metric_definition_id = uuid_fk("metric_definitions")
+    entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="CASCADE"))
+    content_unit_id = Column(UUID(as_uuid=True), ForeignKey("content_units.id", ondelete="CASCADE"))
+    value_number = Column(Float)
+    value_text = Column(Text)
+    value_bool = Column(Boolean)
+    value_json = Column(JSONB)
+    observed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    valid_from = Column(DateTime(timezone=True))
+    valid_to = Column(DateTime(timezone=True))
+    aggregation_window = Column(Text)
+    dimensions_json = json_object()
+    labels_json = json_object()
+    source_id = Column(UUID(as_uuid=True), ForeignKey("sources.id", ondelete="SET NULL"))
+    source_event_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("source_events.id", ondelete="SET NULL"),
+    )
+    confidence = Column(Float)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 class Job(TimestampMixin, Base):

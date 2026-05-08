@@ -226,6 +226,19 @@ Done when:
 - broken link is recorded
 - missing title/meta metrics are present
 
+Current implementation status:
+
+- A `crawl_website` job can run locally through `POST /jobs/{job_id}/run-now`
+  and through the Celery task `meaninggrid.site_audit.run_crawl_job`.
+- The crawler supports deterministic `file://` fixture crawls and basic HTTP
+  fetching.
+- Extraction stores raw object metadata, source events, page/domain/crawl
+  entities, content units, content chunks, link relations, and core technical
+  metric values.
+- Site Audit overview and pages endpoints expose the persisted crawl output.
+- Integration tests cover the fixture crawl end to end, including pages,
+  content, chunks, metrics, relations, and job events.
+
 ## Sprint 4: Embeddings And Semantic Search
 
 Goal:

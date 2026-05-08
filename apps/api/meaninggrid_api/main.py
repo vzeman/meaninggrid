@@ -4,16 +4,19 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from meaninggrid_analysis.site_audit import run_crawl_job
 from meaninggrid_core.config import get_settings
 from meaninggrid_core.health import build_health_status
 from meaninggrid_db.database import check_database, session_scope
 from meaninggrid_db.models import (
     Dataset,
     DataStream,
+    Entity,
     EntityType,
     Job,
     JobEvent,
     MetricDefinition,
+    MetricValue,
     Module,
     ModuleInstallation,
     ModuleResource,
@@ -37,6 +40,8 @@ from meaninggrid_api.schemas import (
     JobSummary,
     ModuleInstallationSummary,
     ModuleSummary,
+    SiteAuditOverview,
+    SiteAuditPageRow,
     SiteAuditRunCreate,
     SiteCrawlCreate,
     WorkspaceSummary,
@@ -236,6 +241,49 @@ def get_dataset_card(dataset_id: UUID, db: DbSession) -> DatasetCard:
     )
 
 
+@app.get("/datasets/{dataset_id}/site-audit/overview", tags=["site-audit"])
+def get_site_audit_overview(dataset_id: UUID, db: DbSession) -> SiteAuditOverview:
+    dataset = _get_dataset(db, dataset_id)
+    pages_crawled = db.scalar(
+        select(func.count()).select_from(_page_entities_query(dataset.id).subquery())
+    )
+    technical_avg = _metric_average(db, dataset.id, "technical_score")
+    meta_missing = _metric_count(db, dataset.id, "meta_description_length", 0)
+    title_missing = _metric_count(db, dataset.id, "title_length", 0)
+    top_issue_types = []
+    if meta_missing:
+        top_issue_types.append({"type": "missing_meta_description", "count": meta_missing})
+    if title_missing:
+        top_issue_types.append({"type": "missing_title", "count": title_missing})
+    return SiteAuditOverview(
+        pages_crawled=pages_crawled or 0,
+        technical_score_avg=technical_avg,
+        geo_readiness_avg=None,
+        open_insights=0,
+        top_issue_types=top_issue_types,
+    )
+
+
+@app.get("/datasets/{dataset_id}/site-audit/pages", tags=["site-audit"])
+def list_site_audit_pages(dataset_id: UUID, db: DbSession) -> dict[str, list[SiteAuditPageRow]]:
+    dataset = _get_dataset(db, dataset_id)
+    pages = db.scalars(_page_entities_query(dataset.id).order_by(Entity.canonical_uri.asc())).all()
+    rows = []
+    for page in pages:
+        rows.append(
+            SiteAuditPageRow(
+                entity_id=page.id,
+                label=page.label,
+                canonical_uri=page.canonical_uri,
+                title=page.properties_json.get("title"),
+                status_code=page.properties_json.get("status_code"),
+                word_count=_metric_value(db, dataset.id, page.id, "word_count"),
+                technical_score=_metric_value(db, dataset.id, page.id, "technical_score"),
+            )
+        )
+    return {"pages": rows}
+
+
 @app.post("/datasets/{dataset_id}/site-audit/crawls", tags=["site-audit"], status_code=202)
 def start_site_audit_crawl(
     dataset_id: UUID,
@@ -339,6 +387,18 @@ def cancel_job(job_id: UUID, db: DbSession) -> JobSummary:
     return _job_summary(job)
 
 
+@app.post("/jobs/{job_id}/run-now", tags=["jobs"])
+def run_job_now(job_id: UUID, db: DbSession) -> JobSummary:
+    job = _get_job(db, job_id)
+    if job.job_type != "crawl_website":
+        raise ApiError(400, "unsupported_job_type", "Only crawl_website jobs can run locally now.")
+    if job.status not in {"queued", "failed"}:
+        raise ApiError(409, "job_not_runnable", "Job is not in a runnable state.")
+    run_crawl_job(db, str(job.id))
+    db.refresh(job)
+    return _job_summary(job)
+
+
 def _safe_check(check: Any) -> str:
     try:
         return check()
@@ -410,6 +470,53 @@ def _job_summary(job: Job) -> JobSummary:
         finished_at=job.finished_at,
         error=job.error_json,
     )
+
+
+def _page_entities_query(dataset_id: UUID):
+    return select(Entity).join(EntityType, EntityType.id == Entity.entity_type_id).where(
+        Entity.dataset_id == dataset_id,
+        EntityType.name == "page",
+    )
+
+
+def _metric_value(db: Session, dataset_id: UUID, entity_id: UUID, metric_name: str) -> float | None:
+    return db.scalar(
+        select(MetricValue.value_number)
+        .join(MetricDefinition, MetricDefinition.id == MetricValue.metric_definition_id)
+        .where(
+            MetricValue.dataset_id == dataset_id,
+            MetricValue.entity_id == entity_id,
+            MetricDefinition.name == metric_name,
+        )
+        .order_by(MetricValue.created_at.desc())
+        .limit(1)
+    )
+
+
+def _metric_average(db: Session, dataset_id: UUID, metric_name: str) -> float | None:
+    value = db.scalar(
+        select(func.avg(MetricValue.value_number))
+        .join(MetricDefinition, MetricDefinition.id == MetricValue.metric_definition_id)
+        .where(
+            MetricValue.dataset_id == dataset_id,
+            MetricDefinition.name == metric_name,
+        )
+    )
+    return float(value) if value is not None else None
+
+
+def _metric_count(db: Session, dataset_id: UUID, metric_name: str, value: float) -> int:
+    count = db.scalar(
+        select(func.count())
+        .select_from(MetricValue)
+        .join(MetricDefinition, MetricDefinition.id == MetricValue.metric_definition_id)
+        .where(
+            MetricValue.dataset_id == dataset_id,
+            MetricDefinition.name == metric_name,
+            MetricValue.value_number == value,
+        )
+    )
+    return count or 0
 
 
 def _slugify(value: str) -> str:
