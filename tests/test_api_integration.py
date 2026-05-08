@@ -7,6 +7,8 @@ from meaninggrid_db.models import (
     ContentChunk,
     ContentUnit,
     Dataset,
+    Embedding,
+    EmbeddingRun,
     Entity,
     EntityRelation,
     Job,
@@ -17,6 +19,8 @@ from meaninggrid_db.models import (
     SourceEvent,
 )
 from meaninggrid_db.seed import ensure_local_seed
+from meaninggrid_vectorstores import create_qdrant_client
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 from sqlalchemy import func, select
 
 
@@ -171,10 +175,16 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
         assert job is not None
         assert job.result_json["pages_fetched"] == 5
         assert job.result_json["pages_failed"] == 0
+        assert job.result_json["chunks_embedded"] >= 15
+        assert job.result_json["vector_backend"] == "qdrant"
+        vector_collection = job.result_json["vector_collection"]
 
         assert _count(session, RawObject, dataset["id"]) == 5
         assert _count(session, SourceEvent, dataset["id"]) == 5
-        assert _count(session, ContentChunk, dataset["id"]) >= 15
+        content_chunk_count = _count(session, ContentChunk, dataset["id"])
+        assert content_chunk_count >= 15
+        assert _count(session, Embedding, dataset["id"]) == content_chunk_count
+        assert _count(session, EmbeddingRun, dataset["id"]) == 1
         assert _count(session, EntityRelation, dataset["id"]) >= 8
 
         pages = session.scalars(
@@ -217,7 +227,24 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
         ).all()
         assert "job_started" in job_event_types
         assert "page_extracted" in job_event_types
+        assert "embedding_succeeded" in job_event_types
         assert "job_succeeded" in job_event_types
+
+    points, _next_page = create_qdrant_client().scroll(
+        collection_name=vector_collection,
+        scroll_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="dataset_id",
+                    match=MatchValue(value=dataset["id"]),
+                )
+            ]
+        ),
+        limit=content_chunk_count,
+        with_vectors=False,
+    )
+    assert len(points) == content_chunk_count
+    assert points[0].payload["module"] == "site_audit"
 
 
 def _fixture_index_url() -> str:

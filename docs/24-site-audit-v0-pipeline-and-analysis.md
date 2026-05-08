@@ -258,6 +258,22 @@ main_content
 paragraph
 ```
 
+## V0 Embedding Implementation
+
+The first implementation embeds every `content_chunk` after crawl extraction.
+The default local provider is deterministic and offline-safe so Docker tests do
+not depend on downloading a model. It writes:
+
+- embedding model identity to `embedding_models`
+- run status to `embedding_runs`
+- vector lineage to `embeddings`
+- vectors to Qdrant collection
+  `mg_local_sentence_transformers_all_minilm_l6_v2_content_chunks`
+
+Every Qdrant point payload must include tenant, workspace, dataset, entity,
+content unit, content chunk, module, classification, language, and content hash
+fields so later semantic search and MCP tools can always filter safely.
+
 ## Chunking
 
 Chunking strategy:

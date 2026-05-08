@@ -498,6 +498,76 @@ class MetricValue(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+class EmbeddingModel(Base):
+    __tablename__ = "embedding_models"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "model_name",
+            "model_version",
+            name="uq_embedding_models_identity",
+        ),
+    )
+
+    id = uuid_pk()
+    provider = Column(Text, nullable=False)
+    model_name = Column(Text, nullable=False)
+    model_version = Column(Text, nullable=False, server_default="default")
+    dimension = Column(Integer, nullable=False)
+    distance_metric = Column(Text, nullable=False, server_default="cosine")
+    normalized = Column(Boolean, nullable=False, server_default=text("true"))
+    capabilities_json = json_object()
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class EmbeddingRun(Base):
+    __tablename__ = "embedding_runs"
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    embedding_model_id = uuid_fk("embedding_models")
+    status = Column(Text, nullable=False, server_default="queued")
+    target_filter_json = json_object()
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class Embedding(Base):
+    __tablename__ = "embeddings"
+    __table_args__ = (
+        UniqueConstraint(
+            "embedding_model_id",
+            "vector_store",
+            "vector_collection",
+            "vector_point_id",
+            name="uq_embeddings_vector_point",
+        ),
+    )
+
+    id = uuid_pk()
+    tenant_id = uuid_fk("tenants")
+    workspace_id = uuid_fk("workspaces")
+    dataset_id = uuid_fk("datasets")
+    embedding_run_id = Column(UUID(as_uuid=True), ForeignKey("embedding_runs.id"))
+    entity_id = Column(UUID(as_uuid=True), ForeignKey("entities.id", ondelete="CASCADE"))
+    content_unit_id = Column(UUID(as_uuid=True), ForeignKey("content_units.id", ondelete="CASCADE"))
+    content_chunk_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("content_chunks.id", ondelete="CASCADE"),
+    )
+    embedding_model_id = uuid_fk("embedding_models")
+    vector_store = Column(Text, nullable=False)
+    vector_collection = Column(Text, nullable=False)
+    vector_point_id = Column(Text, nullable=False)
+    content_hash = Column(Text, nullable=False)
+    embedding_status = Column(Text, nullable=False, server_default="ready")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class Job(TimestampMixin, Base):
     __tablename__ = "jobs"
 

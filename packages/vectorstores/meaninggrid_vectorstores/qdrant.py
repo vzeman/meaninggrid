@@ -1,6 +1,6 @@
 from meaninggrid_core.config import get_settings
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PayloadSchemaType, VectorParams
+from qdrant_client.models import Distance, PayloadSchemaType, PointStruct, VectorParams
 
 from meaninggrid_vectorstores.collections import (
     VectorCollectionSpec,
@@ -52,6 +52,27 @@ def ensure_collection(client: QdrantClient, spec: VectorCollectionSpec) -> None:
             field_name=payload_index.field_name,
             field_schema=_payload_schema(payload_index.field_schema),
         )
+
+
+def upsert_points(
+    client: QdrantClient,
+    collection_name: str,
+    points: list[tuple[str, list[float], dict]],
+) -> None:
+    if not points:
+        return
+    client.upsert(
+        collection_name=collection_name,
+        points=[
+            PointStruct(
+                id=point_id,
+                vector=vector,
+                payload=payload,
+            )
+            for point_id, vector, payload in points
+        ],
+        wait=True,
+    )
 
 
 def _distance(value: str) -> Distance:

@@ -8,10 +8,14 @@ from typing import Any
 from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
 
 import httpx
+from meaninggrid_core.config import get_settings
 from meaninggrid_db.models import (
     ContentChunk,
     ContentUnit,
     Dataset,
+    Embedding,
+    EmbeddingModel,
+    EmbeddingRun,
     Entity,
     EntityRelation,
     EntityType,
@@ -22,6 +26,12 @@ from meaninggrid_db.models import (
     RawObject,
     Source,
     SourceEvent,
+)
+from meaninggrid_embeddings import embed_text
+from meaninggrid_vectorstores import (
+    create_qdrant_client,
+    ensure_default_content_collection,
+    upsert_points,
 )
 from selectolax.parser import HTMLParser
 from sqlalchemy import delete, func, select
@@ -84,6 +94,8 @@ def run_crawl_job(session: Session, job_id: str) -> dict[str, int]:
 
     try:
         result = _crawl_dataset(session, job, dataset, source, base_url, max_pages)
+        embedding_result = _embed_dataset_chunks(session, job, dataset)
+        result.update(embedding_result)
         job.status = "succeeded"
         job.finished_at = datetime.now(UTC)
         job.progress_current = result["pages_fetched"]
@@ -219,6 +231,77 @@ def _crawl_dataset(
         "pages_fetched": fetched_count,
         "pages_failed": failed_count,
         "raw_objects": len(raw_object_ids),
+    }
+
+
+def _embed_dataset_chunks(session: Session, job: Job, dataset: Dataset) -> dict[str, Any]:
+    settings = get_settings()
+    if settings.vector_backend != "qdrant":
+        return {"chunks_embedded": 0, "vector_backend": settings.vector_backend}
+
+    chunks = session.scalars(
+        select(ContentChunk).where(ContentChunk.dataset_id == dataset.id).order_by(ContentChunk.id)
+    ).all()
+    if not chunks:
+        return {"chunks_embedded": 0, "vector_backend": "qdrant"}
+
+    embedding_model = _get_embedding_model(session)
+    embedding_run = EmbeddingRun(
+        tenant_id=dataset.tenant_id,
+        workspace_id=dataset.workspace_id,
+        dataset_id=dataset.id,
+        embedding_model_id=embedding_model.id,
+        status="running",
+        target_filter_json={"content_kind": "content_chunks", "module": "site_audit"},
+        started_at=datetime.now(UTC),
+    )
+    session.add(embedding_run)
+    session.flush()
+    session.add(
+        _job_event(
+            job,
+            "embedding_started",
+            f"Embedding {len(chunks)} content chunks.",
+            {"chunks": len(chunks)},
+        )
+    )
+
+    client = create_qdrant_client()
+    collection = ensure_default_content_collection(client)
+    points = []
+    for chunk in chunks:
+        vector = embed_text(chunk.text, collection.dimension)
+        payload = _chunk_vector_payload(dataset, chunk)
+        points.append((str(chunk.id), vector, payload))
+        _upsert_embedding_record(
+            session,
+            dataset,
+            embedding_run,
+            embedding_model,
+            chunk,
+            collection.name,
+        )
+
+    upsert_points(client, collection.name, points)
+    embedding_run.status = "succeeded"
+    embedding_run.finished_at = datetime.now(UTC)
+    session.add(
+        _job_event(
+            job,
+            "embedding_succeeded",
+            "Embedded content chunks into Qdrant.",
+            {
+                "chunks_embedded": len(points),
+                "vector_collection": collection.name,
+                "embedding_model": embedding_model.model_name,
+            },
+        )
+    )
+    session.flush()
+    return {
+        "chunks_embedded": len(points),
+        "vector_backend": "qdrant",
+        "vector_collection": collection.name,
     }
 
 
@@ -542,6 +625,11 @@ def _replace_page_content(session: Session, dataset: Dataset, page_entity: Entit
         )
     ).all()
     if unit_ids:
+        chunk_ids = session.scalars(
+            select(ContentChunk.id).where(ContentChunk.content_unit_id.in_(unit_ids))
+        ).all()
+        if chunk_ids:
+            session.execute(delete(Embedding).where(Embedding.content_chunk_id.in_(chunk_ids)))
         session.execute(delete(ContentChunk).where(ContentChunk.content_unit_id.in_(unit_ids)))
         session.execute(delete(ContentUnit).where(ContentUnit.id.in_(unit_ids)))
     session.execute(
@@ -584,6 +672,7 @@ def _add_content_unit(
         content_hash=_hash(text),
         metadata_json={"source": "site_audit_v0"},
         labels_json={"module": "site_audit", "unit_kind": unit_kind},
+        classification_json=page_entity.classification_json,
     )
     session.add(content_unit)
     session.flush()
@@ -614,10 +703,100 @@ def _add_chunk(
         chunking_version="1",
         start_offset=0,
         end_offset=len(text),
-        metadata_json={"unit_kind": content_unit.unit_kind},
-        labels_json={"module": "site_audit"},
+        metadata_json={
+            "unit_kind": content_unit.unit_kind,
+            "language": content_unit.language,
+        },
+        labels_json={
+            "module": "site_audit",
+            "unit_kind": content_unit.unit_kind,
+            "entity_type": page_entity.labels_json.get("entity_type"),
+        },
+        classification_json=content_unit.classification_json,
     )
     session.add(chunk)
+
+
+def _get_embedding_model(session: Session) -> EmbeddingModel:
+    settings = get_settings()
+    model = session.scalar(
+        select(EmbeddingModel).where(
+            EmbeddingModel.provider == settings.embedding_provider,
+            EmbeddingModel.model_name == settings.embedding_model,
+            EmbeddingModel.model_version == "default",
+        )
+    )
+    if model is None:
+        model = EmbeddingModel(
+            provider=settings.embedding_provider,
+            model_name=settings.embedding_model,
+            model_version="default",
+            dimension=settings.embedding_dimension,
+            distance_metric="cosine",
+            normalized=True,
+            capabilities_json={
+                "deterministic": settings.embedding_provider == "local",
+                "content_kind": "content_chunks",
+            },
+        )
+        session.add(model)
+        session.flush()
+    return model
+
+
+def _upsert_embedding_record(
+    session: Session,
+    dataset: Dataset,
+    embedding_run: EmbeddingRun,
+    embedding_model: EmbeddingModel,
+    chunk: ContentChunk,
+    collection_name: str,
+) -> Embedding:
+    existing = session.scalar(
+        select(Embedding).where(
+            Embedding.embedding_model_id == embedding_model.id,
+            Embedding.vector_store == "qdrant",
+            Embedding.vector_collection == collection_name,
+            Embedding.vector_point_id == str(chunk.id),
+        )
+    )
+    if existing is None:
+        existing = Embedding(
+            tenant_id=dataset.tenant_id,
+            workspace_id=dataset.workspace_id,
+            dataset_id=dataset.id,
+            embedding_model_id=embedding_model.id,
+            vector_store="qdrant",
+            vector_collection=collection_name,
+            vector_point_id=str(chunk.id),
+        )
+    existing.embedding_run_id = embedding_run.id
+    existing.entity_id = chunk.entity_id
+    existing.content_unit_id = chunk.content_unit_id
+    existing.content_chunk_id = chunk.id
+    existing.content_hash = chunk.content_hash
+    existing.embedding_status = "ready"
+    session.add(existing)
+    return existing
+
+
+def _chunk_vector_payload(dataset: Dataset, chunk: ContentChunk) -> dict[str, Any]:
+    labels = chunk.labels_json or {}
+    classification = chunk.classification_json or {}
+    return {
+        "tenant_id": str(dataset.tenant_id),
+        "workspace_id": str(dataset.workspace_id),
+        "dataset_id": str(dataset.id),
+        "entity_id": str(chunk.entity_id) if chunk.entity_id else None,
+        "content_unit_id": str(chunk.content_unit_id),
+        "content_chunk_id": str(chunk.id),
+        "entity_type": labels.get("entity_type"),
+        "language": chunk.metadata_json.get("language"),
+        "module": labels.get("module"),
+        "visibility": classification.get("visibility", "internal"),
+        "sensitivity": classification.get("sensitivity", "standard"),
+        "content_hash": chunk.content_hash,
+    }
 
 
 def _add_metric_values(
