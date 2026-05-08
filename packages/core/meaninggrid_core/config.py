@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         default="sentence-transformers/all-MiniLM-L6-v2",
         alias="EMBEDDING_MODEL",
     )
+    embedding_dimension: int = Field(default=384, alias="EMBEDDING_DIMENSION")
     llm_provider: str = Field(default="none", alias="LLM_PROVIDER")
     default_modules: str = Field(default="site_audit", alias="DEFAULT_MODULES")
     enable_telemetry: bool = Field(default=False, alias="ENABLE_TELEMETRY")

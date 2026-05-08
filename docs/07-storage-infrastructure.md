@@ -144,6 +144,17 @@ Recommendation:
 - SaaS small tenants: shared collections with strict filters
 - enterprise: tenant-specific collections
 
+V0 default:
+
+```text
+mg_local_sentence_transformers_all_minilm_l6_v2_content_chunks
+```
+
+This collection uses 384-dimensional cosine vectors for the default local
+embedding model. Payload indexes must exist for tenant, workspace, dataset,
+entity, content unit, content chunk, language, module, visibility, sensitivity,
+and content hash filters before the first embedding job writes points.
+
 ## ClickHouse
 
 Use ClickHouse for:

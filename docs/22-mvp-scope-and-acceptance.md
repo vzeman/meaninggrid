@@ -245,7 +245,9 @@ Or through the web UI.
 - MinIO buckets are created.
 - Qdrant starts as a required local service.
 - `GET /health` reports Qdrant as `vector_store=ok`.
-- Qdrant collection can be created.
+- Qdrant content collection can be created idempotently.
+- Qdrant content collection has payload indexes for tenant, workspace, dataset,
+  entity, content unit, content chunk, classification, and content hash filters.
 
 ### Crawl
 
