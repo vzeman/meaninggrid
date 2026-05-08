@@ -130,6 +130,10 @@ intelligence platform and context layer for AI agents.
     - Locked v0 choices for package tools, backend, workers, frontend,
       embeddings, crawler libraries, IDs, auth, storage, MCP, and fixture site.
 
+32. [DDD Architecture And Quality Standard](30-ddd-architecture-and-quality-standard.md)
+    - Required DDD layers, module boundaries, testing rules, refactoring rules,
+      and quality gates for all implementation work.
+
 ## First Implementation Target
 
 The first useful release should allow a developer to run this locally:
@@ -144,7 +148,7 @@ meaninggrid mcp start
 For implementation, start with:
 
 ```text
-22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints -> 29 Decisions
+22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints -> 29 Decisions -> 30 DDD
 ```
 
 Then an AI agent can ask through MCP:
