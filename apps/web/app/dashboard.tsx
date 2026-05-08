@@ -53,6 +53,20 @@ type SearchResult = {
   canonical_uri: string | null;
 };
 
+type SemanticMap = {
+  page_count: number;
+  nearest_pairs: Array<{
+    source_label: string;
+    target_label: string;
+    similarity: number;
+  }>;
+  outliers: Array<{
+    label: string;
+    canonical_uri: string | null;
+    centroid_distance: number;
+  }>;
+};
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const mcpUrl = process.env.NEXT_PUBLIC_MCP_URL ?? "http://localhost:8010";
 
@@ -66,6 +80,7 @@ export function Dashboard() {
   const [maxPages, setMaxPages] = useState(20);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [semanticMap, setSemanticMap] = useState<SemanticMap | null>(null);
   const [query, setQuery] = useState("pricing plans checkout automation");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -132,14 +147,17 @@ export function Dashboard() {
       setOverview(null);
       setPages([]);
       setSearchResults([]);
+      setSemanticMap(null);
       return;
     }
-    const [overviewData, pageData] = await Promise.all([
+    const [overviewData, pageData, semanticData] = await Promise.all([
       request<Overview>(`/datasets/${datasetId}/site-audit/overview`),
-      request<{ pages: PageRow[] }>(`/datasets/${datasetId}/site-audit/pages`)
+      request<{ pages: PageRow[] }>(`/datasets/${datasetId}/site-audit/pages`),
+      request<SemanticMap>(`/datasets/${datasetId}/site-audit/semantic-map`)
     ]);
     setOverview(overviewData);
     setPages(pageData.pages ?? []);
+    setSemanticMap(semanticData);
   }
 
   useEffect(() => {
@@ -387,6 +405,37 @@ export function Dashboard() {
                 <p>{result.text}</p>
                 <small>{result.canonical_uri}</small>
               </article>
+            ))}
+          </div>
+        </section>
+      </section>
+
+      <section className="grid analysisGrid">
+        <section className="panel">
+          <h2>Similar Pages</h2>
+          <div className="analysisList">
+            {(semanticMap?.nearest_pairs ?? []).slice(0, 5).map((pair) => (
+              <div
+                key={`${pair.source_label}-${pair.target_label}-${pair.similarity}`}
+                className="analysisRow"
+              >
+                <span>{formatScore(pair.similarity)}</span>
+                <p>
+                  {pair.source_label} / {pair.target_label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <h2>Outliers</h2>
+          <div className="analysisList">
+            {(semanticMap?.outliers ?? []).slice(0, 5).map((outlier) => (
+              <div key={`${outlier.label}-${outlier.centroid_distance}`} className="analysisRow">
+                <span>{formatScore(outlier.centroid_distance)}</span>
+                <p>{outlier.label}</p>
+              </div>
             ))}
           </div>
         </section>

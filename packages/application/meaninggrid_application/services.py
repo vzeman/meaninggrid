@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import sqrt
 from typing import Any
 from uuid import UUID
 
@@ -273,6 +274,49 @@ class SiteAuditApplicationService:
         )
         return [self._build_search_result(point) for point in points]
 
+    def semantic_map(self, dataset_id: UUID) -> dict[str, Any]:
+        dataset = self.datasets.get_dataset(dataset_id)
+        page_vectors = self._page_vectors(dataset.id)
+        pages = list(page_vectors.keys())
+        pairs = []
+        for index, source in enumerate(pages):
+            for target in pages[index + 1 :]:
+                pairs.append(
+                    {
+                        "source": source,
+                        "target": target,
+                        "similarity": _cosine(page_vectors[source], page_vectors[target]),
+                    }
+                )
+        pairs.sort(key=lambda item: item["similarity"], reverse=True)
+
+        centroid = _centroid(list(page_vectors.values()))
+        outliers = [
+            {
+                "entity": page,
+                "centroid_distance": 1 - _cosine(page_vectors[page], centroid),
+            }
+            for page in pages
+        ]
+        outliers.sort(key=lambda item: item["centroid_distance"], reverse=True)
+
+        return {
+            "page_count": len(pages),
+            "nearest_pairs": [
+                _semantic_pair(pair["source"], pair["target"], pair["similarity"])
+                for pair in pairs[:10]
+            ],
+            "outliers": [
+                {
+                    "entity_id": item["entity"].id,
+                    "label": item["entity"].label,
+                    "canonical_uri": item["entity"].canonical_uri,
+                    "centroid_distance": item["centroid_distance"],
+                }
+                for item in outliers[:10]
+            ],
+        }
+
     def start_crawl(self, command: StartSiteAuditCrawlCommand) -> Job:
         dataset = self.datasets.get_dataset(command.dataset_id)
         source, stream = self._ensure_website_source(dataset, command)
@@ -440,6 +484,29 @@ class SiteAuditApplicationService:
         )
         return count or 0
 
+    def _page_vectors(self, dataset_id: UUID) -> dict[Entity, list[float]]:
+        settings = get_settings()
+        page_rows = self.session.scalars(self._page_entities_query(dataset_id)).all()
+        vectors: dict[Entity, list[list[float]]] = {page: [] for page in page_rows}
+        chunks = self.session.scalars(
+            select(ContentChunk)
+            .where(
+                ContentChunk.dataset_id == dataset_id,
+                ContentChunk.entity_id.in_([page.id for page in page_rows]),
+            )
+            .order_by(ContentChunk.entity_id.asc(), ContentChunk.chunk_index.asc())
+        ).all()
+        page_by_id = {page.id: page for page in page_rows}
+        for chunk in chunks:
+            page = page_by_id.get(chunk.entity_id)
+            if page is not None:
+                vectors[page].append(embed_text(chunk.text, settings.embedding_dimension))
+        return {
+            page: _normalize(_centroid(chunk_vectors))
+            for page, chunk_vectors in vectors.items()
+            if chunk_vectors
+        }
+
     def _build_search_result(self, point: Any) -> dict[str, Any]:
         payload = point.payload or {}
         chunk_id = payload.get("content_chunk_id")
@@ -528,3 +595,45 @@ def slugify(value: str) -> str:
     while "--" in slug:
         slug = slug.replace("--", "-")
     return slug or "dataset"
+
+
+def _semantic_pair(source: Entity, target: Entity, similarity: float) -> dict[str, Any]:
+    return {
+        "source_entity_id": source.id,
+        "target_entity_id": target.id,
+        "source_label": source.label,
+        "target_label": target.label,
+        "source_uri": source.canonical_uri,
+        "target_uri": target.canonical_uri,
+        "similarity": similarity,
+    }
+
+
+def _centroid(vectors: list[list[float]]) -> list[float]:
+    if not vectors:
+        return []
+    dimension = len(vectors[0])
+    return [
+        sum(vector[index] for vector in vectors) / len(vectors)
+        for index in range(dimension)
+    ]
+
+
+def _cosine(first: list[float], second: list[float]) -> float:
+    if not first or not second:
+        return 0.0
+    denominator = _norm(first) * _norm(second)
+    if denominator == 0:
+        return 0.0
+    return sum(left * right for left, right in zip(first, second, strict=True)) / denominator
+
+
+def _normalize(vector: list[float]) -> list[float]:
+    norm = _norm(vector)
+    if norm == 0:
+        return vector
+    return [value / norm for value in vector]
+
+
+def _norm(vector: list[float]) -> float:
+    return sqrt(sum(value * value for value in vector))

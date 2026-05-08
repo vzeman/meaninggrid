@@ -306,6 +306,25 @@ MCP resource discovery also exposes dataset cards, Site Audit overview
 resources, and page resources so agents can progressively discover the module
 before asking for evidence chunks.
 
+## V0 Semantic Map
+
+The first semantic analysis surface is:
+
+```text
+GET /datasets/{dataset_id}/site-audit/semantic-map
+```
+
+It computes one normalized vector per page by averaging embedded content chunks,
+then returns:
+
+- nearest page pairs by cosine similarity
+- highest centroid-distance pages as outliers
+- page labels and canonical URLs for evidence navigation
+
+This is intentionally small, but it proves the core module behaviors: finding
+near-duplicates, semantically close pages, and pages that are far from the
+site's topical center.
+
 ## Chunking
 
 Chunking strategy:

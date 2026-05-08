@@ -43,6 +43,7 @@ from meaninggrid_api.schemas import (
     SiteAuditRunCreate,
     SiteAuditSearchCreate,
     SiteAuditSearchResult,
+    SiteAuditSemanticMap,
     SiteCrawlCreate,
     WorkspaceSummary,
 )
@@ -242,6 +243,11 @@ def search_site_audit(
         limit=payload.limit,
     )
     return {"results": [SiteAuditSearchResult(**result) for result in results]}
+
+
+@app.get("/datasets/{dataset_id}/site-audit/semantic-map", tags=["site-audit"])
+def get_site_audit_semantic_map(dataset_id: UUID, db: DbSession) -> SiteAuditSemanticMap:
+    return SiteAuditSemanticMap(**SiteAuditApplicationService(db).semantic_map(dataset_id))
 
 
 @app.post("/datasets/{dataset_id}/site-audit/crawls", tags=["site-audit"], status_code=202)

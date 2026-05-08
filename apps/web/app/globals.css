@@ -360,6 +360,40 @@ td small,
   line-height: 1.45;
 }
 
+.analysisGrid {
+  margin-top: 24px;
+}
+
+.analysisList {
+  display: grid;
+  gap: 12px;
+}
+
+.analysisRow {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.analysisRow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.analysisRow span {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.analysisRow p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 @media (max-width: 840px) {
   .masthead,
   .grid,

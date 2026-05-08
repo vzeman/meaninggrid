@@ -176,6 +176,17 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
         assert search_results[0]["payload"]["dataset_id"] == dataset["id"]
         assert any("pricing" in result["text"].lower() for result in search_results)
 
+        semantic_map = client.get(f"/datasets/{dataset['id']}/site-audit/semantic-map")
+        assert semantic_map.status_code == 200
+        semantic_body = semantic_map.json()
+        assert semantic_body["page_count"] == 5
+        assert semantic_body["nearest_pairs"]
+        assert semantic_body["outliers"]
+        assert any(
+            "Pricing" in pair["source_label"] and "Pricing" in pair["target_label"]
+            for pair in semantic_body["nearest_pairs"]
+        )
+
     with session_scope() as session:
         stored_dataset = session.get(Dataset, dataset["id"])
         assert stored_dataset is not None

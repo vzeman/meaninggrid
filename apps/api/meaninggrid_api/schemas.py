@@ -155,3 +155,26 @@ class SiteAuditSearchResult(BaseModel):
     page_label: str | None
     canonical_uri: str | None
     payload: JsonObject
+
+
+class SiteAuditSemanticPair(BaseModel):
+    source_entity_id: UUID
+    target_entity_id: UUID
+    source_label: str
+    target_label: str
+    source_uri: str | None
+    target_uri: str | None
+    similarity: float
+
+
+class SiteAuditSemanticOutlier(BaseModel):
+    entity_id: UUID
+    label: str
+    canonical_uri: str | None
+    centroid_distance: float
+
+
+class SiteAuditSemanticMap(BaseModel):
+    page_count: int
+    nearest_pairs: list[SiteAuditSemanticPair]
+    outliers: list[SiteAuditSemanticOutlier]
