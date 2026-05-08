@@ -11,6 +11,16 @@ import -> model -> embed -> analyze -> explain -> expose through MCP
 Do not start with every connector. Start with the universal model and one or
 two strong demos.
 
+The first implementation should follow the v0 developer specs:
+
+- [MVP Scope And Acceptance](22-mvp-scope-and-acceptance.md)
+- [Initial Database Schema V0](23-initial-database-schema-v0.md)
+- [Site Audit V0 Pipeline And Analysis](24-site-audit-v0-pipeline-and-analysis.md)
+- [API Contract V0](25-api-contract-v0.md)
+- [Worker Jobs And State Machines](26-worker-jobs-and-state-machines.md)
+- [UI Information Architecture V0](27-ui-information-architecture-v0.md)
+- [Development Skeleton And First Sprints](28-development-skeleton-and-first-sprints.md)
+
 ## Phase 0: Foundation Planning
 
 Deliverables:

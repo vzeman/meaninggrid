@@ -98,6 +98,34 @@ intelligence platform and context layer for AI agents.
       modules, streaming, infrastructure, SDKs, tests, and later performance
       escape hatches.
 
+24. [MVP Scope And Acceptance](22-mvp-scope-and-acceptance.md)
+    - Frozen v0.1 Site Audit scope, exclusions, happy path, acceptance
+      criteria, quality gates, and fixture requirements.
+
+25. [Initial Database Schema V0](23-initial-database-schema-v0.md)
+    - Implementation-grade Postgres schema conventions, tables, columns,
+      indexes, migration order, and seed requirements for v0.1.
+
+26. [Site Audit V0 Pipeline And Analysis](24-site-audit-v0-pipeline-and-analysis.md)
+    - Crawl, extraction, entity mapping, chunking, embeddings, technical
+      analysis, semantic analysis, GEO scoring, artifacts, and insights.
+
+27. [API Contract V0](25-api-contract-v0.md)
+    - First REST API shape for workspaces, datasets, crawls, jobs, pages,
+      analyses, insights, evidence, search, context packs, reports, and MCP.
+
+28. [Worker Jobs And State Machines](26-worker-jobs-and-state-machines.md)
+    - Job types, statuses, transitions, progress reporting, idempotency,
+      retries, cancellation, queues, and worker acceptance tests.
+
+29. [UI Information Architecture V0](27-ui-information-architecture-v0.md)
+    - First web app routes, screens, tables, filters, detail views, reports,
+      MCP setup, loading/error states, and Playwright smoke flow.
+
+30. [Development Skeleton And First Sprints](28-development-skeleton-and-first-sprints.md)
+    - Monorepo skeleton, tooling, Docker Compose, sprint sequence, demos, CI,
+      and implementation risks.
+
 ## First Implementation Target
 
 The first useful release should allow a developer to run this locally:
@@ -107,6 +135,12 @@ docker compose up
 meaninggrid import website https://example.com
 meaninggrid analyze
 meaninggrid mcp start
+```
+
+For implementation, start with:
+
+```text
+22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints
 ```
 
 Then an AI agent can ask through MCP:
