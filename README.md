@@ -126,6 +126,18 @@ Run the current backend integration tests and web typecheck with:
 make test
 ```
 
+Run the full tester-readiness gate with:
+
+```bash
+make ready
+```
+
+This includes the Site Audit smoke flow:
+
+```text
+dataset -> crawl -> extract -> embed -> Qdrant search -> semantic map -> MCP search
+```
+
 For local development, crawl jobs can be queued through the API and executed
 immediately with:
 
@@ -154,3 +166,4 @@ The first implementation slice is documented in:
 - [docs/28-development-skeleton-and-first-sprints.md](docs/28-development-skeleton-and-first-sprints.md)
 - [docs/29-engineering-decisions-v0.md](docs/29-engineering-decisions-v0.md)
 - [docs/30-ddd-architecture-and-quality-standard.md](docs/30-ddd-architecture-and-quality-standard.md)
+- [docs/31-site-audit-testing-readiness.md](docs/31-site-audit-testing-readiness.md)

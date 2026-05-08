@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: up down logs ps backend-shell web-shell migrate seed lint test format
+.PHONY: up down logs ps backend-shell web-shell migrate seed lint test smoke ready format
 
 up:
 	docker compose up --build
@@ -27,12 +27,17 @@ seed:
 	docker compose run --rm migrate python -m meaninggrid_db.seed
 
 lint:
-	docker compose run --rm test ruff check apps packages migrations tests
-	docker compose run --rm --no-deps web pnpm --filter @meaninggrid/web typecheck
+	docker compose run --rm --build test ruff check apps packages migrations scripts tests
+	docker compose run --rm --no-deps --build web pnpm --filter @meaninggrid/web typecheck
 
 test:
-	docker compose run --rm test
-	docker compose run --rm --no-deps web pnpm --filter @meaninggrid/web typecheck
+	docker compose run --rm --build test
+	docker compose run --rm --no-deps --build web pnpm --filter @meaninggrid/web typecheck
+
+smoke:
+	docker compose run --rm --build test python scripts/site_audit_smoke.py
+
+ready: lint test smoke
 
 format:
-	$(PYTHON) -m ruff format apps packages || true
+	$(PYTHON) -m ruff format apps packages scripts tests || true

@@ -134,6 +134,10 @@ intelligence platform and context layer for AI agents.
     - Required DDD layers, module boundaries, testing rules, refactoring rules,
       and quality gates for all implementation work.
 
+33. [Site Audit Testing Readiness](31-site-audit-testing-readiness.md)
+    - Local tester workflow, smoke command, UI/API/MCP checks, and known v0
+      limits for the first Site Audit module.
+
 ## First Implementation Target
 
 The first useful release should allow a developer to run this locally:
@@ -148,7 +152,7 @@ meaninggrid mcp start
 For implementation, start with:
 
 ```text
-22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints -> 29 Decisions -> 30 DDD
+22 MVP Scope -> 23 Schema -> 24 Pipeline -> 25 API -> 26 Jobs -> 27 UI -> 28 Sprints -> 29 Decisions -> 30 DDD -> 31 Readiness
 ```
 
 Then an AI agent can ask through MCP:
