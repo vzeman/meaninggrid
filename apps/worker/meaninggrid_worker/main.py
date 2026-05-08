@@ -1,5 +1,4 @@
 from celery import Celery
-
 from meaninggrid_core.config import get_settings
 
 settings = get_settings()

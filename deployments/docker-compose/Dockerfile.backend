@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app/packages/core:/app/apps/api:/app/apps/worker:/app/apps/scheduler:/app/apps/mcp-server:/app/apps/cli
+ENV PYTHONPATH=/app/packages/core:/app/packages/db:/app/apps/api:/app/apps/worker:/app/apps/scheduler:/app/apps/mcp-server:/app/apps/cli
 
 WORKDIR /app
 

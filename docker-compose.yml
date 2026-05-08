@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: meaninggrid
       POSTGRES_PASSWORD: meaninggrid
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
     volumes:
       - meaninggrid_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-16379}:6379"
     volumes:
       - meaninggrid_redis_data:/data
     healthcheck:
@@ -68,6 +68,21 @@ services:
     volumes:
       - meaninggrid_qdrant_data:/qdrant/storage
 
+  migrate:
+    build:
+      context: .
+      dockerfile: deployments/docker-compose/Dockerfile.backend
+    command: >
+      sh -c "alembic -c migrations/alembic.ini upgrade head &&
+      python -m meaninggrid_db.seed"
+    env_file:
+      - .env.example
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -88,6 +103,8 @@ services:
         condition: service_started
       minio-init:
         condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
 
   worker:
     build:
@@ -103,6 +120,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   scheduler:
     build:
@@ -116,6 +135,24 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: deployments/docker-compose/Dockerfile.backend
+    command: pytest
+    env_file:
+      - .env.example
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   mcp-server:
     build:

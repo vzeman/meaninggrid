@@ -1,8 +1,9 @@
 import httpx
 import typer
-from rich import print
-
 from meaninggrid_core.config import get_settings
+from meaninggrid_db.database import session_scope
+from meaninggrid_db.seed import ensure_local_seed
+from rich import print
 
 app = typer.Typer(help="MeaningGrid local CLI.")
 
@@ -21,6 +22,14 @@ def health(api_url: str | None = None) -> None:
     response = httpx.get(f"{url}/health", timeout=10)
     response.raise_for_status()
     print(response.json())
+
+
+@app.command()
+def seed() -> None:
+    """Run the idempotent local database seed."""
+    with session_scope() as session:
+        result = ensure_local_seed(session)
+    print(result)
 
 
 if __name__ == "__main__":

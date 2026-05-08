@@ -147,6 +147,17 @@ Done when:
 - Site Audit module record exists
 - web app shows dataset list empty state
 
+Current implementation status:
+
+- Docker Compose includes a `migrate` service for Alembic plus local seed.
+- The first migration creates identity, workspace, module, dataset, source,
+  schema registry, and job tables.
+- The API reads workspaces/modules from Postgres and can create datasets and
+  queued Site Audit jobs.
+- Integration tests cover local seed idempotency, workspace/module reads,
+  dataset creation, crawl job enqueueing, job events, cancellation, and API
+  error shape.
+
 ## Sprint 2: Core Model And Dataset Creation
 
 Goal:

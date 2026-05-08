@@ -112,12 +112,28 @@ cp .env.example .env
 docker compose up --build
 ```
 
+The `migrate` service runs Alembic and the idempotent local seed before the API
+starts. To run them manually:
+
+```bash
+make migrate
+make seed
+```
+
+Run the current backend integration tests and web typecheck with:
+
+```bash
+make test
+```
+
 Expected local URLs:
 
 - Web UI: http://localhost:3000
 - API: http://localhost:8000
 - API health: http://localhost:8000/health
 - MCP placeholder: http://localhost:8010/health
+- Postgres: localhost:15432
+- Redis: localhost:16379
 - MinIO console: http://localhost:9001
 - Qdrant: http://localhost:6333
 

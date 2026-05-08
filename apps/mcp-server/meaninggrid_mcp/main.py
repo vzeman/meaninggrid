@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-
 from meaninggrid_core.health import build_health_status
 
 app = FastAPI(
