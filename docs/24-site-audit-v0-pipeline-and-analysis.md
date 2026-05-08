@@ -296,6 +296,16 @@ default Qdrant content collection with a mandatory `dataset_id` filter, and
 hydrates results from Postgres so every match includes chunk text, content unit,
 page label, canonical URL, score, and Qdrant payload evidence.
 
+The same capability is exposed to headless agents through:
+
+```text
+POST /mcp/tools/site-audit/semantic-search
+```
+
+MCP resource discovery also exposes dataset cards, Site Audit overview
+resources, and page resources so agents can progressively discover the module
+before asking for evidence chunks.
+
 ## Chunking
 
 Chunking strategy:
