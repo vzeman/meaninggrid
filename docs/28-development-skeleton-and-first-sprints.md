@@ -103,6 +103,7 @@ web
 Health checks:
 
 - Postgres accepts connections.
+- Qdrant accepts vector store connections.
 - API `/health` returns ok.
 - Web returns 200.
 - Worker can connect to Redis.
@@ -251,7 +252,7 @@ Tasks:
 
 - implement embedding model registry
 - implement local embedding provider
-- implement Qdrant adapter
+- implement Qdrant adapter as the default vector backend
 - implement pgvector adapter or postpone to Sprint 5 if Qdrant is primary
 - implement embedding run job
 - write vector payload metadata

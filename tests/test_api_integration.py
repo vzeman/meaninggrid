@@ -36,6 +36,8 @@ def test_workspace_module_dataset_and_job_flow() -> None:
         assert health.status_code == 200
         assert health.json()["database"] == "ok"
         assert health.json()["queue"] == "ok"
+        assert health.json()["vector_backend"] == "qdrant"
+        assert health.json()["vector_store"] == "ok"
 
         workspaces = client.get("/workspaces")
         assert workspaces.status_code == 200

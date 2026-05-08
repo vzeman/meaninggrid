@@ -243,10 +243,11 @@ Build in this order:
 1. Repository skeleton.
 2. Local Docker Compose.
 3. API/web health.
-4. Database migrations.
-5. Seed local workspace and Site Audit module.
-6. Dataset creation.
-7. Fixture crawler.
-8. Extraction.
+4. Qdrant vector-store health.
+5. Database migrations.
+6. Seed local workspace and Site Audit module.
+7. Dataset creation.
+8. Fixture crawler.
+9. Extraction.
 9. Embeddings.
 10. Site Audit analysis.

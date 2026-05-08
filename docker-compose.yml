@@ -67,6 +67,11 @@ services:
       - "6334:6334"
     volumes:
       - meaninggrid_qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   migrate:
     build:
@@ -100,7 +105,7 @@ services:
       redis:
         condition: service_healthy
       qdrant:
-        condition: service_started
+        condition: service_healthy
       minio-init:
         condition: service_completed_successfully
       migrate:
@@ -150,6 +155,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      qdrant:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully

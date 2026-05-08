@@ -142,10 +142,15 @@ Expected local URLs:
 - Postgres: localhost:15432
 - Redis: localhost:16379
 - MinIO console: http://localhost:9001
-- Qdrant: http://localhost:6333
+- Qdrant vector store: http://localhost:6333
+
+Qdrant is part of the first implementation, not an optional future service.
+The API health endpoint reports `vector_store=ok` when the local Qdrant service
+is reachable.
 
 The first implementation slice is documented in:
 
 - [docs/22-mvp-scope-and-acceptance.md](docs/22-mvp-scope-and-acceptance.md)
 - [docs/28-development-skeleton-and-first-sprints.md](docs/28-development-skeleton-and-first-sprints.md)
 - [docs/29-engineering-decisions-v0.md](docs/29-engineering-decisions-v0.md)
+- [docs/30-ddd-architecture-and-quality-standard.md](docs/30-ddd-architecture-and-quality-standard.md)

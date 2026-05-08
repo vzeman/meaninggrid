@@ -243,6 +243,8 @@ Or through the web UI.
 - Seed can run repeatedly without duplicate module records.
 - Worker can process jobs.
 - MinIO buckets are created.
+- Qdrant starts as a required local service.
+- `GET /health` reports Qdrant as `vector_store=ok`.
 - Qdrant collection can be created.
 
 ### Crawl
@@ -271,7 +273,8 @@ Or through the web UI.
 
 - Embedding run can be started.
 - Unchanged chunks are skipped on re-run.
-- Embeddings are written to Qdrant or pgvector depending on config.
+- Embeddings are written to Qdrant by default.
+- pgvector remains available for fallback/minimal mode.
 - Semantic search returns chunks with entity/page references.
 - Vector payload includes tenant, workspace, dataset, entity, content unit, and
   classification fields.

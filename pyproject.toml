@@ -18,6 +18,7 @@ pythonpath = [
   "packages/db",
   "packages/application",
   "packages/analysis",
+  "packages/vectorstores",
   "apps/api",
   "apps/worker",
   "apps/scheduler",

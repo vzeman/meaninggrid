@@ -22,6 +22,7 @@ from meaninggrid_core.health import build_health_status
 from meaninggrid_db.database import check_database, session_scope
 from meaninggrid_db.models import Dataset, Job
 from meaninggrid_db.seed import ensure_local_seed
+from meaninggrid_vectorstores import check_qdrant
 from redis import Redis
 from sqlalchemy.orm import Session
 
@@ -88,7 +89,8 @@ def health() -> dict[str, str]:
     status = build_health_status()
     status["database"] = _safe_check(check_database)
     status["queue"] = _safe_check(_check_queue)
-    if status["database"] != "ok" or status["queue"] != "ok":
+    status["vector_store"] = _safe_check(check_qdrant)
+    if any(status[key] != "ok" for key in ("database", "queue", "vector_store")):
         status["status"] = "degraded"
     return status
 
