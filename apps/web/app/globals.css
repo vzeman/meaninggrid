@@ -133,7 +133,8 @@ dd {
 }
 
 button,
-input {
+input,
+select {
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -152,11 +153,16 @@ button:disabled {
   opacity: 0.6;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 0 12px;
   background: #ffffff;
   color: var(--fg);
+}
+
+select {
+  appearance: none;
 }
 
 .grid {
@@ -178,6 +184,11 @@ input {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+
+.inlineForm.compact {
+  grid-template-columns: 120px auto;
+  justify-content: start;
 }
 
 .moduleList {
@@ -221,6 +232,10 @@ dl {
   overflow: hidden;
 }
 
+.grid .tablePanel {
+  margin-top: 0;
+}
+
 .tableHeader {
   display: flex;
   justify-content: space-between;
@@ -258,6 +273,20 @@ td {
 
 td {
   font-size: 14px;
+  vertical-align: top;
+}
+
+td strong,
+td small {
+  display: block;
+}
+
+td small,
+.smallText,
+.resultRow small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .emptyState {
@@ -265,9 +294,76 @@ td {
   color: var(--muted);
 }
 
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.metric {
+  display: grid;
+  gap: 8px;
+  min-height: 92px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.metric span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric strong {
+  font-size: 28px;
+}
+
+.searchPanel {
+  align-self: start;
+}
+
+.searchForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.resultList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.resultRow {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.resultRow:first-child {
+  border-top: 0;
+}
+
+.resultRow div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resultRow p {
+  margin: 0;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 @media (max-width: 840px) {
   .masthead,
-  .grid {
+  .grid,
+  .metricGrid {
     grid-template-columns: 1fr;
   }
 
@@ -276,7 +372,9 @@ td {
   }
 
   .toolbar,
-  .inlineForm {
+  .inlineForm,
+  .inlineForm.compact,
+  .searchForm {
     grid-template-columns: 1fr;
   }
 
