@@ -187,6 +187,18 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
             for pair in semantic_body["nearest_pairs"]
         )
 
+        clusters = client.get(f"/datasets/{dataset['id']}/site-audit/clusters")
+        assert clusters.status_code == 200
+        cluster_body = clusters.json()
+        assert cluster_body["page_count"] == 5
+        assert cluster_body["cluster_count"] >= 1
+        assert cluster_body["clusters"][0]["members"]
+        assert any(
+            "Pricing" in member["label"]
+            for cluster in cluster_body["clusters"]
+            for member in cluster["members"]
+        )
+
     with session_scope() as session:
         stored_dataset = session.get(Dataset, dataset["id"])
         assert stored_dataset is not None

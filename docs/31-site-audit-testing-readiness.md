@@ -12,6 +12,7 @@ The Site Audit module is ready for tester feedback when a fresh checkout can:
 - extract pages, content units, metrics, and links
 - embed content chunks into Qdrant
 - search crawled content semantically
+- compute semantic page clusters
 - compute similar page pairs and outliers
 - expose dataset context through MCP
 - render the dashboard workflow
@@ -35,7 +36,7 @@ make ready
 The smoke test creates a fresh fixture dataset and verifies the full module path:
 
 ```text
-dataset -> crawl -> extract -> embed -> Qdrant search -> semantic map -> MCP search
+dataset -> crawl -> extract -> embed -> Qdrant search -> clusters -> semantic map -> MCP search
 ```
 
 Expected final line:
@@ -94,6 +95,7 @@ POST /jobs/{job_id}/run-now
 GET  /datasets/{dataset_id}/site-audit/overview
 GET  /datasets/{dataset_id}/site-audit/pages
 POST /datasets/{dataset_id}/site-audit/search
+GET  /datasets/{dataset_id}/site-audit/clusters
 GET  /datasets/{dataset_id}/site-audit/semantic-map
 ```
 
@@ -105,6 +107,7 @@ The first headless agent surface is HTTP-shaped and intentionally thin:
 GET  /mcp/resources
 GET  /mcp/resource/dataset/{dataset_id}/card
 GET  /mcp/resource/dataset/{dataset_id}/site-audit/overview
+GET  /mcp/resource/dataset/{dataset_id}/site-audit/clusters
 POST /mcp/tools/site-audit/semantic-search
 ```
 
@@ -116,7 +119,8 @@ canonical URLs, scores, and payload metadata.
 - Local embeddings are deterministic hash vectors, not a transformer model.
 - JavaScript rendering is not enabled yet.
 - Robots handling is represented in request shape but not a full crawler policy.
-- Semantic clusters are not persisted as first-class artifacts yet.
+- Semantic clusters are computed on request and are not persisted as first-class
+  artifacts yet.
 - Similar pages and outliers are computed on request from content chunk vectors.
 - Authentication is local-only.
 

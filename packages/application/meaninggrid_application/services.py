@@ -317,6 +317,23 @@ class SiteAuditApplicationService:
             ],
         }
 
+    def clusters(self, dataset_id: UUID) -> dict[str, Any]:
+        dataset = self.datasets.get_dataset(dataset_id)
+        page_vectors = self._page_vectors(dataset.id)
+        pages = list(page_vectors.keys())
+        if not pages:
+            return {"page_count": 0, "cluster_count": 0, "clusters": []}
+
+        page_clusters = _cluster_pages(page_vectors)
+        return {
+            "page_count": len(pages),
+            "cluster_count": len(page_clusters),
+            "clusters": [
+                _semantic_cluster(index + 1, cluster, page_vectors)
+                for index, cluster in enumerate(page_clusters)
+            ],
+        }
+
     def start_crawl(self, command: StartSiteAuditCrawlCommand) -> Job:
         dataset = self.datasets.get_dataset(command.dataset_id)
         source, stream = self._ensure_website_source(dataset, command)
@@ -607,6 +624,84 @@ def _semantic_pair(source: Entity, target: Entity, similarity: float) -> dict[st
         "target_uri": target.canonical_uri,
         "similarity": similarity,
     }
+
+
+def _semantic_cluster(
+    index: int,
+    pages: list[Entity],
+    page_vectors: dict[Entity, list[float]],
+) -> dict[str, Any]:
+    centroid = _normalize(_centroid([page_vectors[page] for page in pages]))
+    members = [
+        {
+            "entity_id": page.id,
+            "label": page.label,
+            "canonical_uri": page.canonical_uri,
+            "similarity_to_centroid": _cosine(page_vectors[page], centroid),
+        }
+        for page in pages
+    ]
+    members.sort(key=lambda item: (-item["similarity_to_centroid"], item["label"]))
+    average_similarity = sum(member["similarity_to_centroid"] for member in members) / len(members)
+    representative = members[0]["label"] if members else f"Cluster {index}"
+    return {
+        "cluster_id": f"site-audit-page-cluster-{index}",
+        "label": representative,
+        "page_count": len(members),
+        "average_similarity": average_similarity,
+        "members": members,
+    }
+
+
+def _cluster_pages(page_vectors: dict[Entity, list[float]]) -> list[list[Entity]]:
+    pages = list(page_vectors.keys())
+    parent = {page: page for page in pages}
+
+    def find(page: Entity) -> Entity:
+        root = page
+        while parent[root] is not root:
+            root = parent[root]
+        while parent[page] is not page:
+            next_page = parent[page]
+            parent[page] = root
+            page = next_page
+        return root
+
+    def union(first: Entity, second: Entity) -> None:
+        first_root = find(first)
+        second_root = find(second)
+        if first_root is not second_root:
+            parent[second_root] = first_root
+
+    pairs = [
+        (source, target, _cosine(page_vectors[source], page_vectors[target]))
+        for index, source in enumerate(pages)
+        for target in pages[index + 1 :]
+    ]
+    for source, target, similarity in pairs:
+        if similarity >= 0.72:
+            union(source, target)
+
+    clusters = _components(pages, find)
+    if len(pages) > 1 and all(len(cluster) == 1 for cluster in clusters) and pairs:
+        source, target, _similarity = max(pairs, key=lambda pair: pair[2])
+        union(source, target)
+        clusters = _components(pages, find)
+
+    return sorted(
+        clusters,
+        key=lambda cluster: (-len(cluster), min(page.label for page in cluster)),
+    )
+
+
+def _components(pages: list[Entity], find) -> list[list[Entity]]:
+    components: dict[Entity, list[Entity]] = {}
+    for page in pages:
+        components.setdefault(find(page), []).append(page)
+    return [
+        sorted(component, key=lambda page: page.label)
+        for component in components.values()
+    ]
 
 
 def _centroid(vectors: list[list[float]]) -> list[float]:

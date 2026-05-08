@@ -67,6 +67,23 @@ type SemanticMap = {
   }>;
 };
 
+type ClusterMap = {
+  page_count: number;
+  cluster_count: number;
+  clusters: Array<{
+    cluster_id: string;
+    label: string;
+    page_count: number;
+    average_similarity: number;
+    members: Array<{
+      entity_id: string;
+      label: string;
+      canonical_uri: string | null;
+      similarity_to_centroid: number;
+    }>;
+  }>;
+};
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const mcpUrl = process.env.NEXT_PUBLIC_MCP_URL ?? "http://localhost:8010";
 
@@ -81,6 +98,7 @@ export function Dashboard() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [pages, setPages] = useState<PageRow[]>([]);
   const [semanticMap, setSemanticMap] = useState<SemanticMap | null>(null);
+  const [clusterMap, setClusterMap] = useState<ClusterMap | null>(null);
   const [query, setQuery] = useState("pricing plans checkout automation");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -148,16 +166,19 @@ export function Dashboard() {
       setPages([]);
       setSearchResults([]);
       setSemanticMap(null);
+      setClusterMap(null);
       return;
     }
-    const [overviewData, pageData, semanticData] = await Promise.all([
+    const [overviewData, pageData, semanticData, clusterData] = await Promise.all([
       request<Overview>(`/datasets/${datasetId}/site-audit/overview`),
       request<{ pages: PageRow[] }>(`/datasets/${datasetId}/site-audit/pages`),
-      request<SemanticMap>(`/datasets/${datasetId}/site-audit/semantic-map`)
+      request<SemanticMap>(`/datasets/${datasetId}/site-audit/semantic-map`),
+      request<ClusterMap>(`/datasets/${datasetId}/site-audit/clusters`)
     ]);
     setOverview(overviewData);
     setPages(pageData.pages ?? []);
     setSemanticMap(semanticData);
+    setClusterMap(clusterData);
   }
 
   useEffect(() => {
@@ -346,6 +367,7 @@ export function Dashboard() {
         <Metric label="Technical score" value={formatScore(overview?.technical_score_avg)} />
         <Metric label="Entities" value={selectedDataset?.entity_count ?? 0} />
         <Metric label="Content units" value={selectedDataset?.content_unit_count ?? 0} />
+        <Metric label="Clusters" value={clusterMap?.cluster_count ?? 0} />
       </section>
 
       <section className="grid">
@@ -435,6 +457,21 @@ export function Dashboard() {
               <div key={`${outlier.label}-${outlier.centroid_distance}`} className="analysisRow">
                 <span>{formatScore(outlier.centroid_distance)}</span>
                 <p>{outlier.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <h2>Clusters</h2>
+          <div className="analysisList">
+            {(clusterMap?.clusters ?? []).slice(0, 4).map((cluster) => (
+              <div key={cluster.cluster_id} className="clusterRow">
+                <div>
+                  <strong>{cluster.label}</strong>
+                  <span>{cluster.page_count === 1 ? "1 page" : `${cluster.page_count} pages`}</span>
+                </div>
+                <p>{cluster.members.map((member) => member.label).join(" / ")}</p>
               </div>
             ))}
           </div>

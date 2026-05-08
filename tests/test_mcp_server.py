@@ -47,9 +47,14 @@ def test_mcp_site_audit_semantic_search_returns_evidence() -> None:
                 "limit": 5,
             },
         )
+        clusters = mcp_client.get(f"/mcp/resource/dataset/{dataset['id']}/site-audit/clusters")
 
     assert response.status_code == 200
     results = response.json()["results"]
     assert results
     assert results[0]["payload"]["dataset_id"] == dataset["id"]
     assert any("pricing" in result["text"].lower() for result in results)
+    assert clusters.status_code == 200
+    cluster_body = clusters.json()
+    assert cluster_body["cluster_count"] >= 1
+    assert cluster_body["clusters"][0]["members"]

@@ -296,7 +296,7 @@ td small,
 
 .metricGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   margin: 24px 0;
 }
@@ -391,6 +391,40 @@ td small,
 .analysisRow p {
   margin: 0;
   font-size: 14px;
+  line-height: 1.45;
+}
+
+.clusterRow {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.clusterRow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.clusterRow div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clusterRow strong,
+.clusterRow span {
+  font-size: 14px;
+}
+
+.clusterRow span,
+.clusterRow p {
+  color: var(--muted);
+}
+
+.clusterRow p {
+  margin: 0;
+  font-size: 13px;
   line-height: 1.45;
 }
 

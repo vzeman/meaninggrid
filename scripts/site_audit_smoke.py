@@ -47,6 +47,7 @@ def main() -> None:
             api_client,
             f"/datasets/{dataset['id']}/site-audit/semantic-map",
         )
+        clusters = _get_json(api_client, f"/datasets/{dataset['id']}/site-audit/clusters")
 
     with session_scope() as session:
         stored_job = session.get(Job, queued["job_id"])
@@ -73,6 +74,7 @@ def main() -> None:
     _assert_at_least(len(search["results"]), 1, "API semantic search returns evidence")
     _assert_at_least(len(semantic_map["nearest_pairs"]), 1, "semantic map has similar pairs")
     _assert_at_least(len(semantic_map["outliers"]), 1, "semantic map has outliers")
+    _assert_at_least(clusters["cluster_count"], 1, "semantic clusters are available")
     _assert_at_least(len(mcp_resources["resources"]), 1, "MCP resources are discoverable")
     _assert_at_least(len(mcp_search["results"]), 1, "MCP semantic search returns evidence")
 
@@ -82,6 +84,7 @@ def main() -> None:
     print(f"chunks_embedded={result_json['chunks_embedded']}")
     print(f"semantic_results={len(search['results'])}")
     print(f"nearest_pairs={len(semantic_map['nearest_pairs'])}")
+    print(f"clusters={clusters['cluster_count']}")
     print(f"mcp_resources={len(mcp_resources['resources'])}")
 
 

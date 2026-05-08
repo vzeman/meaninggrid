@@ -135,7 +135,7 @@ make ready
 This includes the Site Audit smoke flow:
 
 ```text
-dataset -> crawl -> extract -> embed -> Qdrant search -> semantic map -> MCP search
+dataset -> crawl -> extract -> embed -> Qdrant search -> clusters -> semantic map -> MCP search
 ```
 
 For local development, crawl jobs can be queued through the API and executed

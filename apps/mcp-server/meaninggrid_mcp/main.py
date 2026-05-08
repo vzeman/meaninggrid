@@ -81,6 +81,11 @@ def list_resources() -> dict[str, list[dict[str, Any]]]:
                                 "name": f"{dataset.name} pages",
                                 "description": "Crawled page rows with metrics.",
                             },
+                            {
+                                "uri": f"meaninggrid://dataset/{dataset.id}/site-audit/clusters",
+                                "name": f"{dataset.name} clusters",
+                                "description": "Semantic page clusters and members.",
+                            },
                         ]
                     )
     return {"resources": resources}
@@ -107,6 +112,28 @@ def get_dataset_card(dataset_id: UUID) -> dict[str, Any]:
 def get_site_audit_overview(dataset_id: UUID) -> dict[str, Any]:
     with session_scope() as session:
         return SiteAuditApplicationService(session).overview(dataset_id)
+
+
+@app.get("/mcp/resource/dataset/{dataset_id}/site-audit/clusters", tags=["mcp"])
+def get_site_audit_clusters(dataset_id: UUID) -> dict[str, Any]:
+    with session_scope() as session:
+        clusters = SiteAuditApplicationService(session).clusters(dataset_id)
+        return {
+            **clusters,
+            "clusters": [
+                {
+                    **cluster,
+                    "members": [
+                        {
+                            **member,
+                            "entity_id": str(member["entity_id"]),
+                        }
+                        for member in cluster["members"]
+                    ],
+                }
+                for cluster in clusters["clusters"]
+            ],
+        }
 
 
 @app.post("/mcp/tools/site-audit/semantic-search", tags=["mcp"])

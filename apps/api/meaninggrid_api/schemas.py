@@ -178,3 +178,24 @@ class SiteAuditSemanticMap(BaseModel):
     page_count: int
     nearest_pairs: list[SiteAuditSemanticPair]
     outliers: list[SiteAuditSemanticOutlier]
+
+
+class SiteAuditClusterMember(BaseModel):
+    entity_id: UUID
+    label: str
+    canonical_uri: str | None
+    similarity_to_centroid: float
+
+
+class SiteAuditCluster(BaseModel):
+    cluster_id: str
+    label: str
+    page_count: int
+    average_similarity: float
+    members: list[SiteAuditClusterMember]
+
+
+class SiteAuditClusters(BaseModel):
+    page_count: int
+    cluster_count: int
+    clusters: list[SiteAuditCluster]
