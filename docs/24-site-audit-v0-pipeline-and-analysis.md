@@ -274,6 +274,28 @@ Every Qdrant point payload must include tenant, workspace, dataset, entity,
 content unit, content chunk, module, classification, language, and content hash
 fields so later semantic search and MCP tools can always filter safely.
 
+## V0 Semantic Search
+
+The first user-facing semantic search surface is:
+
+```text
+POST /datasets/{dataset_id}/site-audit/search
+```
+
+Input:
+
+```json
+{
+  "query": "pricing plans checkout automation",
+  "limit": 10
+}
+```
+
+The API embeds the query with the same local embedding provider, searches the
+default Qdrant content collection with a mandatory `dataset_id` filter, and
+hydrates results from Postgres so every match includes chunk text, content unit,
+page label, canonical URL, score, and Qdrant payload evidence.
+
 ## Chunking
 
 Chunking strategy:

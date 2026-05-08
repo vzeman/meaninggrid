@@ -138,3 +138,20 @@ class SiteAuditPageRow(BaseModel):
     status_code: int | None
     word_count: int | None
     technical_score: float | None
+
+
+class SiteAuditSearchCreate(BaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    limit: int = Field(default=10, ge=1, le=50)
+
+
+class SiteAuditSearchResult(BaseModel):
+    content_chunk_id: UUID
+    content_unit_id: UUID
+    entity_id: UUID | None
+    score: float
+    text: str
+    unit_kind: str | None
+    page_label: str | None
+    canonical_uri: str | None
+    payload: JsonObject

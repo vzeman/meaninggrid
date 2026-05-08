@@ -5,7 +5,10 @@ from typing import Any
 from uuid import UUID
 
 from meaninggrid_analysis.site_audit import run_crawl_job
+from meaninggrid_core.config import get_settings
 from meaninggrid_db.models import (
+    ContentChunk,
+    ContentUnit,
     Dataset,
     DataStream,
     Entity,
@@ -19,6 +22,12 @@ from meaninggrid_db.models import (
     ModuleResource,
     Source,
     Workspace,
+)
+from meaninggrid_embeddings import embed_text
+from meaninggrid_vectorstores import (
+    create_qdrant_client,
+    default_content_collection_spec,
+    search_points,
 )
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -251,6 +260,19 @@ class SiteAuditApplicationService:
             for page in pages
         ]
 
+    def semantic_search(self, dataset_id: UUID, query: str, limit: int) -> list[dict[str, Any]]:
+        dataset = self.datasets.get_dataset(dataset_id)
+        collection = default_content_collection_spec()
+        query_vector = embed_text(query, get_settings().embedding_dimension)
+        points = search_points(
+            create_qdrant_client(),
+            collection.name,
+            query_vector,
+            str(dataset.id),
+            limit,
+        )
+        return [self._build_search_result(point) for point in points]
+
     def start_crawl(self, command: StartSiteAuditCrawlCommand) -> Job:
         dataset = self.datasets.get_dataset(command.dataset_id)
         source, stream = self._ensure_website_source(dataset, command)
@@ -417,6 +439,36 @@ class SiteAuditApplicationService:
             )
         )
         return count or 0
+
+    def _build_search_result(self, point: Any) -> dict[str, Any]:
+        payload = point.payload or {}
+        chunk_id = payload.get("content_chunk_id")
+        chunk = self.session.get(ContentChunk, chunk_id) if chunk_id else None
+        if chunk is None:
+            return {
+                "content_chunk_id": chunk_id,
+                "content_unit_id": payload.get("content_unit_id"),
+                "entity_id": payload.get("entity_id"),
+                "score": float(point.score),
+                "text": "",
+                "unit_kind": payload.get("unit_kind"),
+                "page_label": None,
+                "canonical_uri": None,
+                "payload": payload,
+            }
+        unit = self.session.get(ContentUnit, chunk.content_unit_id)
+        entity = self.session.get(Entity, chunk.entity_id) if chunk.entity_id else None
+        return {
+            "content_chunk_id": chunk.id,
+            "content_unit_id": chunk.content_unit_id,
+            "entity_id": chunk.entity_id,
+            "score": float(point.score),
+            "text": chunk.text,
+            "unit_kind": unit.unit_kind if unit else None,
+            "page_label": entity.label if entity else None,
+            "canonical_uri": entity.canonical_uri if entity else None,
+            "payload": payload,
+        }
 
 
 class JobApplicationService:

@@ -791,6 +791,7 @@ def _chunk_vector_payload(dataset: Dataset, chunk: ContentChunk) -> dict[str, An
         "content_unit_id": str(chunk.content_unit_id),
         "content_chunk_id": str(chunk.id),
         "entity_type": labels.get("entity_type"),
+        "unit_kind": labels.get("unit_kind"),
         "language": chunk.metadata_json.get("language"),
         "module": labels.get("module"),
         "visibility": classification.get("visibility", "internal"),

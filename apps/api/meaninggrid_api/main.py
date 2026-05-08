@@ -41,6 +41,8 @@ from meaninggrid_api.schemas import (
     SiteAuditOverview,
     SiteAuditPageRow,
     SiteAuditRunCreate,
+    SiteAuditSearchCreate,
+    SiteAuditSearchResult,
     SiteCrawlCreate,
     WorkspaceSummary,
 )
@@ -226,6 +228,20 @@ def list_site_audit_pages(dataset_id: UUID, db: DbSession) -> dict[str, list[Sit
             )
         )
     return {"pages": rows}
+
+
+@app.post("/datasets/{dataset_id}/site-audit/search", tags=["site-audit"])
+def search_site_audit(
+    dataset_id: UUID,
+    payload: SiteAuditSearchCreate,
+    db: DbSession,
+) -> dict[str, list[SiteAuditSearchResult]]:
+    results = SiteAuditApplicationService(db).semantic_search(
+        dataset_id=dataset_id,
+        query=payload.query,
+        limit=payload.limit,
+    )
+    return {"results": [SiteAuditSearchResult(**result) for result in results]}
 
 
 @app.post("/datasets/{dataset_id}/site-audit/crawls", tags=["site-audit"], status_code=202)

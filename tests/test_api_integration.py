@@ -164,6 +164,18 @@ def test_fixture_site_crawl_extracts_entities_content_metrics_and_events() -> No
         assert len(page_rows) == 5
         assert any(row["title"] == "MeaningGrid Fixture Site" for row in page_rows)
 
+        search_response = client.post(
+            f"/datasets/{dataset['id']}/site-audit/search",
+            json={"query": "pricing plans checkout automation", "limit": 5},
+        )
+        assert search_response.status_code == 200
+        search_results = search_response.json()["results"]
+        assert len(search_results) >= 1
+        assert search_results[0]["score"] > 0
+        assert search_results[0]["text"]
+        assert search_results[0]["payload"]["dataset_id"] == dataset["id"]
+        assert any("pricing" in result["text"].lower() for result in search_results)
+
     with session_scope() as session:
         stored_dataset = session.get(Dataset, dataset["id"])
         assert stored_dataset is not None

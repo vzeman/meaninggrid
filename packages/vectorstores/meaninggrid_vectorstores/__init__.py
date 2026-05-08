@@ -11,6 +11,7 @@ from meaninggrid_vectorstores.qdrant import (
     create_qdrant_client,
     ensure_collection,
     ensure_default_content_collection,
+    search_points,
     upsert_points,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "default_content_collection_spec",
     "ensure_collection",
     "ensure_default_content_collection",
+    "search_points",
     "upsert_points",
 ]

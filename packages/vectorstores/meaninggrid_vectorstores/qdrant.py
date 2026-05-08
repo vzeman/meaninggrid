@@ -1,6 +1,15 @@
 from meaninggrid_core.config import get_settings
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PayloadSchemaType, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PayloadSchemaType,
+    PointStruct,
+    ScoredPoint,
+    VectorParams,
+)
 
 from meaninggrid_vectorstores.collections import (
     VectorCollectionSpec,
@@ -73,6 +82,31 @@ def upsert_points(
         ],
         wait=True,
     )
+
+
+def search_points(
+    client: QdrantClient,
+    collection_name: str,
+    query_vector: list[float],
+    dataset_id: str,
+    limit: int,
+) -> list[ScoredPoint]:
+    response = client.query_points(
+        collection_name=collection_name,
+        query=query_vector,
+        query_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="dataset_id",
+                    match=MatchValue(value=dataset_id),
+                )
+            ]
+        ),
+        limit=limit,
+        with_payload=True,
+        with_vectors=False,
+    )
+    return list(response.points)
 
 
 def _distance(value: str) -> Distance:
